@@ -6,3 +6,6 @@ models/
 outputs/
 .env
 .DS_Store
+
+docs/06_VIVA_QUESTIONS.md
+docs/07_PRESENTATION_AND_REPORT.md

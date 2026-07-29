@@ -37,8 +37,6 @@ The project includes an extensive `docs/` folder covering every aspect of the sy
 - 🚀 [**03_HOW_TO_RUN.md**](docs/03_HOW_TO_RUN.md) — Step-by-step setup and execution guide.
 - 🧪 [**04_TESTING_GUIDE.md**](docs/04_TESTING_GUIDE.md) — How to test and validate the AI models.
 - 💻 [**05_CODE_WALKTHROUGH.md**](docs/05_CODE_WALKTHROUGH.md) — Complete explanation of all 14 Python modules.
-- 🎤 [**06_VIVA_QUESTIONS.md**](docs/06_VIVA_QUESTIONS.md) — 60+ viva questions and detailed answers.
-- 📊 [**07_PRESENTATION_AND_REPORT.md**](docs/07_PRESENTATION_AND_REPORT.md) — Ready-to-use 12-slide PPT content and report structure.
 
 ---
 
