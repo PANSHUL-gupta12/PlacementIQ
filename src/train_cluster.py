@@ -173,10 +173,10 @@ def assign_cluster_names(
     centroids: np.ndarray,
     feature_names: list[str],
 ) -> dict[int, str]:
-    """Assign meaningful names based on centroid overall strength.
+    """Assign meaningful names based on classifier prediction probability.
 
-    Clusters are ranked by their average centroid value (proxy for overall
-    skill level) and mapped to names from the pool.
+    Clusters are ranked by their predicted placement probability
+    and mapped to names from the pool.
 
     Args:
         centroids: KMeans cluster centres, shape (K, n_features).
@@ -185,12 +185,25 @@ def assign_cluster_names(
     Returns:
         Dict mapping cluster_id → human-readable name.
     """
-    k = centroids.shape[0]
-    mean_values = centroids.mean(axis=1)
-    ranked_indices = np.argsort(-mean_values)  # Descending
+    import os
+    import joblib
+    try:
+        model_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models"))
+        clf = joblib.load(os.path.join(model_dir, "best_classifier.joblib"))
+        probs = clf.predict_proba(centroids)[:, 1]
+    except Exception as e:
+        logger.warning(f"Could not load classifier to name clusters. Falling back to simple sum. Error: {e}")
+        probs = centroids.mean(axis=1)
 
-    names = CLUSTER_NAME_POOL[:k] if k <= len(CLUSTER_NAME_POOL) else \
-        [f"Cluster {i}" for i in range(k)]
+    k = centroids.shape[0]
+    ranked_indices = np.argsort(-probs)  # Descending
+
+    if k <= 2:
+        names = ["Top Performers", "Needs Improvement"]
+    else:
+        # Spread names across the pool based on K
+        step = max(1, len(CLUSTER_NAME_POOL) // k)
+        names = [CLUSTER_NAME_POOL[i * step] for i in range(k)]
 
     cluster_names = {int(ranked_indices[i]): names[i] for i in range(k)}
     logger.info("Cluster names: %s", cluster_names)

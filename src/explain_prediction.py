@@ -211,7 +211,10 @@ def explain_single_prediction(
         # Fallback: feature_importance × feature_value as proxy
         imp_df = get_feature_importance(model, feature_names)
         imp_map = dict(zip(imp_df["feature"], imp_df["importance"]))
-        fv = student_features[0]
+        if isinstance(student_features, pd.DataFrame):
+            fv = student_features.iloc[0].values
+        else:
+            fv = student_features[0]
 
         contributions = [
             (feat, imp_map.get(feat, 0) * fv[i])

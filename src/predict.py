@@ -257,11 +257,17 @@ def predict_single_student(
             else:
                 eng_data[col] = 0  # Unknown category fallback
 
-    # Build feature DataFrame in the right order
+    # Build feature DataFrame in the right order for the model
     feature_df = pd.DataFrame([{f: eng_data.get(f, 0.0) for f in feature_names}])
 
-    # Scale
-    feature_scaled = scaler.transform(feature_df)
+    # Scale using the exact columns and order the scaler was fitted on
+    if hasattr(scaler, "feature_names_in_"):
+        scale_cols = scaler.feature_names_in_
+        # This replaces the values in-place while keeping feature_df's column order intact
+        feature_df[scale_cols] = scaler.transform(feature_df[scale_cols])
+        feature_scaled = feature_df
+    else:
+        feature_scaled = scaler.transform(feature_df)
 
     # ── Predict ─────────────────────────────────────────────────────────
     probability = float(best_model.predict_proba(feature_scaled)[0][1])
@@ -531,7 +537,13 @@ def run_batch_prediction(input_csv: str) -> None:
                 eng_data[col] = le.transform([val])[0] if val in le.classes_ else 0
 
         feature_df = pd.DataFrame([{f: eng_data.get(f, 0.0) for f in feature_names}])
-        feature_scaled = scaler.transform(feature_df)
+        
+        if hasattr(scaler, "feature_names_in_"):
+            scale_cols = scaler.feature_names_in_
+            feature_df[scale_cols] = scaler.transform(feature_df[scale_cols])
+            feature_scaled = feature_df
+        else:
+            feature_scaled = scaler.transform(feature_df)
         
         prob = float(best_model.predict_proba(feature_scaled)[0][1])
         readiness = classify_readiness(prob)

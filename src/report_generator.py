@@ -159,9 +159,14 @@ def generate_report(
         "",
         "  🏢 RECOMMENDED COMPANIES",
         "  " + "─" * 40,
-        "  ⚠️  No placement is guaranteed.",
-        "",
     ])
+    
+    if company_matching.get("placement_probability", 0) >= 0.95:
+        lines.append("  🏆 OUTSTANDING PROFILE: Placement is practically guaranteed!")
+    else:
+        lines.append("  ℹ️  Disclaimer: These are suggested targets. Placement is not guaranteed.")
+        
+    lines.append("")
 
     if company_matching.get("eligible"):
         lines.append("  ✅ Eligible:")
@@ -174,6 +179,11 @@ def generate_report(
         for tier in company_matching["stretch"]:
             companies = ", ".join(tier["companies"][:4])
             lines.append(f"    → [{tier['label']}] {companies}")
+            
+    if not company_matching.get("eligible") and not company_matching.get("stretch"):
+        lines.append("  🔴 Needs Improvement:")
+        lines.append("    No company tiers currently match your profile.")
+        lines.append("    Focus heavily on the roadmap below to improve your chances.")
 
     lines.append("")
 

@@ -127,6 +127,11 @@ python src/predict.py --train-llm
 3. Fine-tunes the model for 3 epochs
 4. Saves the trained model to `models/llm_resume_model/`
 
+**How is the DistilBERT Resume Analyser used?**
+The LLM model acts as a secondary NLP-based classifier alongside the primary classical ML model. Once you train it using `--train-llm`, the model is saved locally. Then, whenever you run `python src/predict.py --interactive`, the system automatically:
+1. Converts the numeric/categorical inputs you enter into a natural-language "resume summary paragraph".
+2. Passes this text paragraph through the fine-tuned DistilBERT transformer.
+3. Appends an **LLM RESUME ANALYSIS** section at the bottom of the placement report, displaying the LLM's independent prediction and confidence score.
 ---
 
 ## Step 8: Run Interactive Prediction
