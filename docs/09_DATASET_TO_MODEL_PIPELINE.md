@@ -10,7 +10,7 @@ The project currently uses a single primary dataset split into training and test
 
 | Dataset | File | Source | Rows | Columns | Purpose |
 |---------|------|--------|------|---------|---------|
-| Placement Training Data | `dataset/train.csv` | Source not documented | 45,000 | 15 | Used to train the ML models and learn placement patterns |
+| Placement Training Data | `dataset/cleaned_train.csv` | Source not documented | 45,000 | 15 | Used to train the ML models and learn placement patterns |
 | Placement Testing Data | `dataset/test.csv` | Source not documented | 5,000 | 15 | Used to evaluate the model's accuracy on unseen data |
 
 *Note: If you downloaded this from Kaggle, you can update the source to the exact Kaggle URL.*
@@ -23,21 +23,21 @@ The original dataset contains the following 15 columns.
 
 | Feature | Dataset | Data Type | Meaning | Example | Used? |
 |---------|---------|-----------|---------|---------|-------|
-| `Student_ID` | train.csv | Numerical | Unique identifier for each student | 1048 | No |
-| `Age` | train.csv | Numerical | Age of the student | 22 | Yes |
-| `Gender` | train.csv | Categorical | Male/Female | Female | Yes |
-| `Degree` | train.csv | Categorical | Type of degree | B.Tech | Yes |
-| `Branch` | train.csv | Categorical | Academic specialization | CSE | Yes |
-| `CGPA` | train.csv | Numerical | Cumulative Grade Point Average | 8.2 | Yes |
-| `Internships` | train.csv | Numerical | Count of completed internships | 2 | Yes |
-| `Projects` | train.csv | Numerical | Count of completed projects | 4 | Yes |
-| `Coding_Skills` | train.csv | Numerical | Self/Test rated coding ability | 8 | Yes |
-| `Communication_Skills` | train.csv | Numerical | Rated communication ability | 7 | Yes |
-| `Aptitude_Test_Score` | train.csv | Numerical | Score on logical/aptitude test | 78 | Yes |
-| `Soft_Skills_Rating` | train.csv | Numerical | Rated interpersonal skills | 7 | Yes |
-| `Certifications` | train.csv | Numerical | Count of online certificates | 3 | Yes |
-| `Backlogs` | train.csv | Numerical | Number of uncleared subjects | 0 | Yes |
-| `Placement_Status` | train.csv | Categorical | Whether they were hired | Placed | **Target** |
+| `Student_ID` | cleaned_train.csv | Numerical | Unique identifier for each student | 1048 | No |
+| `Age` | cleaned_train.csv | Numerical | Age of the student | 22 | Yes |
+| `Gender` | cleaned_train.csv | Categorical | Male/Female | Female | Yes |
+| `Degree` | cleaned_train.csv | Categorical | Type of degree | B.Tech | Yes |
+| `Branch` | cleaned_train.csv | Categorical | Academic specialization | CSE | Yes |
+| `CGPA` | cleaned_train.csv | Numerical | Cumulative Grade Point Average | 8.2 | Yes |
+| `Internships` | cleaned_train.csv | Numerical | Count of completed internships | 2 | Yes |
+| `Projects` | cleaned_train.csv | Numerical | Count of completed projects | 4 | Yes |
+| `Coding_Skills` | cleaned_train.csv | Numerical | Self/Test rated coding ability | 8 | Yes |
+| `Communication_Skills` | cleaned_train.csv | Numerical | Rated communication ability | 7 | Yes |
+| `Aptitude_Test_Score` | cleaned_train.csv | Numerical | Score on logical/aptitude test | 78 | Yes |
+| `Soft_Skills_Rating` | cleaned_train.csv | Numerical | Rated interpersonal skills | 7 | Yes |
+| `Certifications` | cleaned_train.csv | Numerical | Count of online certificates | 3 | Yes |
+| `Backlogs` | cleaned_train.csv | Numerical | Number of uncleared subjects | 0 | Yes |
+| `Placement_Status` | cleaned_train.csv | Categorical | Whether they were hired | Placed | **Target** |
 
 ---
 
@@ -69,7 +69,7 @@ The target column is auto-detected by searching for keywords like "placed", "sta
 
 | Removed Feature | Original Dataset | Why Removed | Code Location |
 |-----------------|------------------|-------------|---------------|
-| `Student_ID` | train.csv / test.csv | It is a unique identifier. It contains no predictive value and would cause the model to memorize students rather than learn patterns. | `src/data_loader.py` (`detect_columns()`) |
+| `Student_ID` | cleaned_train.csv / test.csv | It is a unique identifier. It contains no predictive value and would cause the model to memorize students rather than learn patterns. | `src/data_loader.py` (`detect_columns()`) |
 
 ---
 
@@ -81,7 +81,7 @@ Instead, the project performs a **Vertical Concatenation** in `src/preprocessing
 
 | Dataset | Merge Key | Method | Purpose |
 |---------|-----------|--------|---------|
-| `train.csv` + `test.csv` | None | `pd.concat(axis=0)` | Combined temporarily to ensure LabelEncoders and Missing Value Imputers see all possible categories and values, then split back apart. |
+| `cleaned_train.csv` + `test.csv` | None | `pd.concat(axis=0)` | Combined temporarily to ensure LabelEncoders and Missing Value Imputers see all possible categories and values, then split back apart. |
 
 ---
 
@@ -131,7 +131,7 @@ Target: `Placement_Status`
 ## 8. RAW DATA → FINAL DATASET
 
 ```text
-RAW KAGGLE DATA (dataset/train.csv)
+RAW KAGGLE DATA (dataset/cleaned_train.csv)
        ↓
 Load CSV (data_loader.py)
        ↓
@@ -308,7 +308,7 @@ Final Report Printed to Terminal & Saved to TXT
 
 | File | Purpose | Input | Output |
 |------|---------|-------|--------|
-| `data_loader.py` | Load and inspect data | `train.csv` | EDA plots, Column definitions |
+| `data_loader.py` | Load and inspect data | `cleaned_train.csv` | EDA plots, Column definitions |
 | `feature_engineering.py`| Create composite features | Raw DataFrame | DataFrame with 7 new features |
 | `preprocessing.py` | Clean, Encode, Scale | Engineered DataFrame | Cleaned `X_train`, `y_train` |
 | `train_classifier.py` | Train & pick best model | `X_train`, `y_train` | `best_classifier.joblib` |
@@ -354,7 +354,7 @@ Final Report Printed to Terminal & Saved to TXT
 ## QUESTIONS I SHOULD BE ABLE TO ANSWER
 
 **1. Which datasets did you use?**
-We used a tabular CSV dataset (`train.csv` and `test.csv`) containing 45,000 student records with academic and skill metrics.
+We used a tabular CSV dataset (`cleaned_train.csv` and `test.csv`) containing 45,000 student records with academic and skill metrics.
 
 **2. Which features did you remove?**
 We removed `Student_ID` because it has no predictive value.

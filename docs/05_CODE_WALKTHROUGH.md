@@ -44,7 +44,7 @@ PlacementIQ_AI/
 │   ├── report_generator.py       # Final report formatter
 │   └── llm_resume_classifier.py  # DistilBERT fine-tuning
 ├── dataset/
-│   ├── train.csv                 # 45,000 training records
+│   ├── cleaned_train.csv                 # 45,000 training records
 │   └── test.csv                  # 5,000 test records
 ├── models/                       # Saved trained models
 ├── outputs/                      # Generated plots + reports
@@ -372,7 +372,7 @@ Maps probability to readiness level:
 Converts a CSV row into a natural language paragraph describing the student's profile.
 
 #### `train_llm_model(train_csv, model_dir)`
-1. Loads `train.csv`
+1. Loads `cleaned_train.csv`
 2. Generates resume paragraphs for each student
 3. Tokenises text using `DistilBertTokenizer`
 4. Creates a PyTorch Dataset

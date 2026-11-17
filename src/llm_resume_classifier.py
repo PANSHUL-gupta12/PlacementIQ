@@ -170,8 +170,8 @@ def train_llm_model(
     logger.info("▶ Step 4: Tokenising and creating dataset...")
     ResumeDataset = _create_dataset_class()
 
-    # Split into train (90%) and validation (10%)
-    split_idx = int(len(texts) * 0.9)
+    # Split into train (80%) and validation (20%)
+    split_idx = int(len(texts) * 0.8)
     train_dataset = ResumeDataset(texts[:split_idx], labels[:split_idx], tokenizer, max_length)
     val_dataset = ResumeDataset(texts[split_idx:], labels[split_idx:], tokenizer, max_length)
 

@@ -23,6 +23,11 @@ import sys
 import logging
 import argparse
 
+# Fix OpenBLAS memory allocation error on Windows
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+
 import numpy as np
 import pandas as pd
 import joblib
@@ -72,7 +77,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-DATASET_TRAIN_PATH = os.path.join(PROJECT_ROOT, "dataset", "train.csv")
+DATASET_TRAIN_PATH = os.path.join(PROJECT_ROOT, "dataset", "cleaned_train.csv")
 DATASET_TEST_PATH = os.path.join(PROJECT_ROOT, "dataset", "test.csv")
 OUTPUT_DIR = os.path.join(PROJECT_ROOT, "outputs")
 MODEL_DIR = os.path.join(PROJECT_ROOT, "models")
@@ -87,7 +92,7 @@ def ensure_datasets() -> None:
         logger.info("Datasets found.")
         return
 
-    logger.error("Datasets not found in dataset folder. Please provide train.csv and test.csv")
+    logger.error("Datasets not found in dataset folder. Please provide cleaned_train.csv and test.csv")
     sys.exit(1)
 
 
@@ -129,6 +134,22 @@ def run_training_pipeline() -> dict:
     )
     save_best_model(training["best_model"], training["best_model_name"], MODEL_DIR)
 
+    # ── Step 4.5: Train Regressors (Salary Package LPA) ─────────────────
+    logger.info("\n▶ STEP 4.5: Training Salary Package Regressors")
+    reg_train = load_dataset(DATASET_TRAIN_PATH)
+    reg_test = load_dataset(DATASET_TEST_PATH)
+    if "Salary_LPA" in reg_train.columns and "Salary_LPA" in reg_test.columns:
+        from train_regressor import train_regression_models
+        from model_validation import plot_overfitting_underfitting, plot_bias_variance_tradeoff
+        reg_features = [c for c in prep["feature_names"] if c in prep["X_train"].columns]
+        train_regression_models(
+            prep["X_train"][reg_features], reg_train["Salary_LPA"].iloc[:len(prep["X_train"])],
+            prep["X_test"][reg_features], reg_test["Salary_LPA"].iloc[:len(prep["X_test"])],
+            OUTPUT_DIR, MODEL_DIR
+        )
+        plot_overfitting_underfitting(prep["X_train"][reg_features], prep["y_train"], OUTPUT_DIR)
+        plot_bias_variance_tradeoff(OUTPUT_DIR)
+
     # ── Step 5: Evaluate ────────────────────────────────────────────────
     logger.info("\n▶ STEP 5: Model Evaluation")
     comparison_df = evaluation_pipeline(
@@ -148,8 +169,20 @@ def run_training_pipeline() -> dict:
         MODEL_DIR,
     )
 
-    # ── Step 7: Explainable AI ──────────────────────────────────────────
-    logger.info("\n▶ STEP 7: Explainable AI")
+    # ── Step 7: Association Rules & PCA Dimensionality Reduction ────────
+    logger.info("\n▶ STEP 7: Association Rules & PCA Dimensionality Reduction")
+    from association_and_pca import create_student_skill_baskets, mine_association_rules, run_pca_analysis
+    baskets = create_student_skill_baskets(df_raw_train.head(5000))
+    rules_res = mine_association_rules(baskets, min_support=0.15, min_confidence=0.5, output_dir=OUTPUT_DIR)
+    pca_res = run_pca_analysis(prep["X_train"].values[:3000], prep["feature_names"], prep["y_train"].values[:3000], output_dir=OUTPUT_DIR)
+
+    # ── Step 8: Reinforcement Learning Optimal Placement Strategy ───────
+    logger.info("\n▶ STEP 8: Reinforcement Learning Placement Policy Convergence")
+    from reinforcement_learning import train_rl_placement_agent
+    rl_res = train_rl_placement_agent(episodes=600, output_dir=OUTPUT_DIR)
+
+    # ── Step 9: Explainable AI ──────────────────────────────────────────
+    logger.info("\n▶ STEP 9: Explainable AI")
     xai = explanation_pipeline(
         training["best_model"],
         prep["X_test"],
@@ -308,6 +341,21 @@ def predict_single_student(
     if interview_scores:
         interview_result = evaluate_interview(**interview_scores)
 
+    # ── Salary Package Regression (LPA) ─────────────────────────────────
+    predicted_salary = None
+    reg_path = os.path.join(MODEL_DIR, "best_regressor.joblib")
+    if os.path.isfile(reg_path):
+        try:
+            reg_model = joblib.load(reg_path)
+            if hasattr(reg_model, "feature_names_in_"):
+                reg_cols = reg_model.feature_names_in_
+                reg_input = pd.DataFrame([{c: eng_data.get(c, 0.0) for c in reg_cols}])
+            else:
+                reg_input = feature_scaled
+            predicted_salary = round(float(reg_model.predict(reg_input)[0]), 2)
+        except Exception as e:
+            logger.warning("Could not predict salary: %s", e)
+
     # ── Generate Report ─────────────────────────────────────────────────
     report = generate_report(
         probability=probability,
@@ -318,6 +366,7 @@ def predict_single_student(
         explanation=explanation,
         resume_analysis=resume_result,
         interview_result=interview_result,
+        predicted_salary=predicted_salary,
     )
 
     # Save report

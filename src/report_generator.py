@@ -71,6 +71,7 @@ def generate_report(
     resume_analysis: Optional[dict] = None,
     interview_result: Optional[dict] = None,
     student_name: str = "Student",
+    predicted_salary: Optional[float] = None,
 ) -> str:
     """Generate the final PlacementIQ AI report.
 
@@ -106,15 +107,18 @@ def generate_report(
     ]
 
     # ── Placement Prediction ────────────────────────────────────────────
-    lines.extend([
+    pred_lines = [
         "",
-        "  📊 PLACEMENT PREDICTION",
+        "  📊 PLACEMENT PREDICTION & PACKAGE ESTIMATION",
         "  " + "─" * 40,
         f"  Placement Probability : {prob_pct}%",
         f"  Readiness Level       : {readiness}",
         f"  Student Cluster       : {cluster_name}",
-        "",
-    ])
+    ]
+    if predicted_salary is not None:
+        pred_lines.append(f"  Estimated Package/CTC : {predicted_salary:.2f} LPA")
+    pred_lines.append("")
+    lines.extend(pred_lines)
 
     # ── Explanation ─────────────────────────────────────────────────────
     if explanation.get("positive_factors") or explanation.get("negative_factors"):

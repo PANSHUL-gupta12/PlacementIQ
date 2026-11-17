@@ -24,6 +24,10 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import LinearSVC
+from sklearn.calibration import CalibratedClassifierCV
 from sklearn.model_selection import cross_val_score
 from sklearn.metrics import roc_auc_score
 
@@ -78,6 +82,15 @@ def get_model_registry(random_state: int = 42) -> dict[str, Any]:
             max_depth=8,
             min_samples_split=5,
             random_state=random_state,
+        ),
+        "KNN": KNeighborsClassifier(
+            n_neighbors=5,
+            n_jobs=-1,
+        ),
+        "NaiveBayes": GaussianNB(),
+        "SVM": CalibratedClassifierCV(
+            LinearSVC(random_state=random_state, max_iter=2000, dual="auto"),
+            cv=3,
         ),
     }
 

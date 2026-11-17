@@ -22,7 +22,7 @@ This document contains 60+ potential viva questions that can be asked about this
 - 1 deep learning NLP model (DistilBERT for resume classification)
 
 ### Q5. What is the dataset used?
-**A:** We use a dataset of 50,000 student records split into train.csv (45,000 records) and test.csv (5,000 records). Each record has 13 input features (Age, Gender, Degree, Branch, CGPA, Internships, Projects, Coding_Skills, Communication_Skills, Aptitude_Test_Score, Soft_Skills_Rating, Certifications, Backlogs) and 1 target variable (Placement_Status: "Placed" or "Not Placed").
+**A:** We use a dataset of 50,000 student records split into cleaned_train.csv (45,000 records) and test.csv (5,000 records). Each record has 13 input features (Age, Gender, Degree, Branch, CGPA, Internships, Projects, Coding_Skills, Communication_Skills, Aptitude_Test_Score, Soft_Skills_Rating, Certifications, Backlogs) and 1 target variable (Placement_Status: "Placed" or "Not Placed").
 
 ### Q6. What makes this project different from a simple binary classifier?
 **A:** Instead of just saying "Placed" or "Not Placed", our system provides:
@@ -123,7 +123,7 @@ This document contains 60+ potential viva questions that can be asked about this
 **A:** [CLS] is a special token prepended to every input in BERT/DistilBERT. After processing the entire sequence, the [CLS] token's embedding captures a summary representation of the entire input. This embedding is fed into the classification head for making predictions.
 
 ### Q33. Why did we generate synthetic resume text instead of using real resumes?
-**A:** We don't have real resume texts paired with placement outcomes. Instead, we convert each row from train.csv into a descriptive paragraph. This is a practical approach that teaches the model to associate profile descriptions with placement outcomes.
+**A:** We don't have real resume texts paired with placement outcomes. Instead, we convert each row from cleaned_train.csv into a descriptive paragraph. This is a practical approach that teaches the model to associate profile descriptions with placement outcomes.
 
 ### Q34. What loss function does the LLM use?
 **A:** CrossEntropyLoss, which is the standard loss for multi-class (and binary) classification. It measures how far the model's predicted probability distribution is from the true label.
@@ -240,3 +240,44 @@ This document contains 60+ potential viva questions that can be asked about this
 
 ### Q65. How would you improve the model's AUC if it were lower than 0.90?
 **A:** (1) Collect more training data, (2) Engineer more features, (3) Try ensemble methods (stacking multiple models), (4) Hyperparameter tuning using GridSearchCV or Optuna, (5) Address class imbalance with SMOTE, (6) Try more complex models like neural networks.
+
+---
+
+## Appendix: Core Mathematical Formulas 
+*These are highly likely to be asked by an examiner during a Viva or presentation to test your core understanding.*
+
+### 1. Feature Engineering Formulas (Custom Logic)
+*   **Academic Score:**
+    $$AcademicScore = \left( \frac{CGPA}{10} \times 0.6 \right) - \left( \frac{Backlogs}{5} \times 0.4 \right)$$
+*   **Technical Score:**
+    $$TechnicalScore = \frac{Coding\_Skills + Projects + \left(\frac{Aptitude\_Test\_Score}{10}\right)}{30}$$
+
+### 2. Data Pre-Processing Formulas
+*   **Standard Scaler (Z-Score Normalization):** Used to scale numerical features so they have a mean of 0 and standard deviation of 1.
+    $$z = \frac{x - \mu}{\sigma}$$
+    *(Where $x$ is the value, $\mu$ is the mean, and $\sigma$ is the standard deviation)*
+*   **Min-Max Scaler:** Used to scale your engineered scores strictly between 0 and 1.
+    $$X_{scaled} = \frac{X - X_{min}}{X_{max} - X_{min}}$$
+*   **Outlier Detection (Interquartile Range - IQR):** Used during data cleaning to find and cap outliers (the dots on the boxplots).
+    $$IQR = Q3 - Q1$$
+    $$Lower Bound = Q1 - 1.5 \times IQR$$
+    $$Upper Bound = Q3 + 1.5 \times IQR$$
+
+### 3. Model Evaluation Metrics
+*   **Accuracy:** The percentage of total predictions the model got right.
+    $$Accuracy = \frac{True Positives + True Negatives}{Total Predictions}$$
+*   **Precision:** Out of all students the model *predicted* would be placed, how many actually were?
+    $$Precision = \frac{True Positives}{True Positives + False Positives}$$
+*   **Recall (Sensitivity):** Out of all students who were *actually* placed, how many did the model find?
+    $$Recall = \frac{True Positives}{True Positives + False Negatives}$$
+*   **F1-Score:** The harmonic mean of Precision and Recall (used because the dataset was slightly imbalanced).
+    $$F1 = 2 \times \frac{Precision \times Recall}{Precision + Recall}$$
+
+### 4. Machine Learning Algorithms (Core Math)
+*   **Logistic Regression:** Uses the Sigmoid function to output a probability between 0 and 1.
+    $$\hat{y} = \frac{1}{1 + e^{-(\beta_0 + \beta_1 x_1 + \dots + \beta_n x_n)}}$$
+*   **Random Forest / Decision Tree:** Uses "Gini Impurity" to decide how to split the tree branches (lower Gini means a better, purer split).
+    $$Gini = 1 - \sum (p_i)^2$$
+    *(Where $p_i$ is the probability of an item belonging to a specific class)*
+*   **K-Means Clustering (Student Segmentation):** Minimizes the "Inertia" (Within-Cluster Sum of Squares) to group similar students together.
+    $$Inertia = \sum_{i=1}^{k} \sum_{x \in C_i} ||x - \mu_i||^2$$

@@ -21,7 +21,7 @@ PlacementIQ AI uses the following testing methodology:
 
 | Test Type | What it tests | How |
 |-----------|---------------|-----|
-| **Train/Test Split** | Model generalisation | 45,000 train + 5,000 test (pre-split) |
+| **Train/Test Split** | Model generalisation | 40,000 train + 10,000 test (pre-split) |
 | **Cross-Validation** | Model stability | 5-fold stratified CV on training set |
 | **Metric Evaluation** | Model quality | Accuracy, Precision, Recall, F1, ROC-AUC |
 | **Functional Testing** | Pipeline correctness | Run each mode and verify output |
@@ -253,7 +253,7 @@ Student_ID,Age,Gender,Degree,Branch,CGPA,Internships,Projects,Coding_Skills,Comm
 
 ```python
 from src.data_loader import load_dataset, detect_columns
-df = load_dataset("dataset/train.csv")
+df = load_dataset("dataset/cleaned_train.csv")
 info = detect_columns(df)
 print(info["target"])       # Should print "Placement_Status"
 print(len(info["numerical"]))  # Should be > 10
@@ -265,7 +265,7 @@ print(info["categorical"])   # Should include "Gender", "Degree", "Branch"
 ```python
 from src.data_loader import load_dataset
 from src.feature_engineering import feature_engineering_pipeline
-df = load_dataset("dataset/train.csv")
+df = load_dataset("dataset/cleaned_train.csv")
 df_eng = feature_engineering_pipeline(df)
 assert "AcademicScore" in df_eng.columns
 assert "TechnicalScore" in df_eng.columns

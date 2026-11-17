@@ -276,7 +276,7 @@ Pre-trained DistilBERT (Frozen/Slightly Adjusted)
 
 ### How We Generate Training Data
 
-Since we don't have real resume texts, we convert each row from `train.csv` into a **natural language paragraph**:
+Since we don't have real resume texts, we convert each row from `cleaned_train.csv` into a **natural language paragraph**:
 
 ```
 Example row: Age=22, Gender=Male, Degree=B.Tech, Branch=CSE, CGPA=8.5, 
@@ -332,7 +332,7 @@ These engineered features help the model capture patterns like "a student with h
 4. **Encode categoricals**: LabelEncoder for Gender, Degree, Branch
 5. **Detect outliers**: IQR-based capping (values beyond 1.5×IQR are clipped)
 6. **Scale features**: StandardScaler (mean=0, std=1) for all numerical columns
-7. **Split data**: Use pre-split train.csv (45,000) and test.csv (5,000)
+7. **Split data**: Use pre-split cleaned_train.csv (45,000) and test.csv (5,000)
 
 ---
 

@@ -39,7 +39,7 @@ Every year, millions of engineering students in India prepare for campus placeme
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  ┌──────────┐   ┌──────────────┐   ┌───────────────┐           │
-│  │ train.csv │──►│ Data Loader  │──►│ Feature       │           │
+│  │ cleaned_train.csv │──►│ Data Loader  │──►│ Feature       │           │
 │  │ test.csv  │   │ + EDA        │   │ Engineering   │           │
 │  └──────────┘   └──────────────┘   └──────┬────────┘           │
 │                                           │                     │
@@ -95,8 +95,8 @@ Every year, millions of engineering students in India prepare for campus placeme
 ## 5. Dataset
 
 The system is trained on **50,000 student records** split into:
-- `train.csv` — 45,000 records for training
-- `test.csv` — 5,000 records for evaluation
+- `cleaned_train.csv` — 40,000 records for training
+- `test.csv` — 10,000 records for evaluation
 
 ### Features (13 input columns)
 
@@ -116,10 +116,11 @@ The system is trained on **50,000 student records** split into:
 | `Certifications` | Integer | 0–10 | Number of certifications |
 | `Backlogs` | Integer | 0–5 | Active backlogs |
 
-### Target Variable
-| Column | Values | Description |
-|--------|--------|-------------|
-| `Placement_Status` | "Placed" / "Not Placed" | Whether the student was placed |
+### Target Variables
+| Column | Type | Description | Purpose |
+|--------|------|-------------|---------|
+| `Placement_Status` | Binary ("Placed"/"Not Placed") | Placement outcome | Classification models |
+| `Salary_LPA` | Continuous Float (3.0–35.0 LPA) | Expected package | Regression models |
 
 ---
 
@@ -128,6 +129,14 @@ The system is trained on **50,000 student records** split into:
 | Module | File | Purpose |
 |--------|------|---------|
 | Data Loader | `data_loader.py` | Load CSV, detect columns, generate EDA plots |
+| Preprocessing | `preprocessing.py` | Handle missing values, encode, scale, and split |
+| Feature Engineering | `feature_engineering.py` | Create composite scores and indices |
+| Classifier Training | `train_classifier.py` | Train Logistic, KNN, Tree, Forest, Naive Bayes, SVM |
+| Salary Regressor | `train_regressor.py` | Simple, Multiple & Polynomial Regression for LPA |
+| Model Validation | `model_validation.py` | Bias-Variance, Overfitting curves, Confusion Matrix |
+| Unsupervised Clustering | `unsupervised_learning.py` | K-Means, Hierarchical Dendrogram, DBSCAN |
+| Association Rules & PCA | `association_and_pca.py` | Apriori, FP-Growth, Recommendations, PCA Scree/2D |
+| Reinforcement Learning | `reinforcement_learning.py` | MDP Environment, Q-Learning Agent & Optimal Policy |
 | Preprocessing | `preprocessing.py` | Handle missing values, encode categoricals, scale features |
 | Feature Engineering | `feature_engineering.py` | Create composite scores (AcademicScore, TechnicalScore, etc.) |
 | Classifier Training | `train_classifier.py` | Train 5 ML models, cross-validate, select best |

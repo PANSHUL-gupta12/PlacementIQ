@@ -6,7 +6,7 @@ This document outlines the visual representation of the dataset, the preprocessi
 
 ## 1. DATASET VISUALIZATIONS & MISSING VALUES
 
-Before training the model, it is crucial to visualize the dataset and check for missing values (NaNs). Below are the graphs generated directly from our `dataset/train.csv` (45,000 students).
+Before training the model, it is crucial to visualize the dataset and check for missing values (NaNs). Below are the graphs generated directly from our `dataset/cleaned_train.csv` (45,000 students).
 
 ### Missing Values Heatmap
 Using `seaborn.heatmap()`, we scan the entire dataset for blank spaces. 

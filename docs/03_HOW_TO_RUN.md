@@ -1,252 +1,163 @@
-# How to Run PlacementIQ AI — Complete Setup Guide
+# 🚀 How to Run PlacementIQ AI — Complete Execution Guide
+**Continuous Evaluation Test 2 (CE-2) | Course Code: 24CSE0316**  
+**Course Title:** Artificial Intelligence & Machine Learning  
 
-This guide takes you from a fresh clone to a fully running AI pipeline. Follow every step carefully.
-
----
-
-## Prerequisites
-
-Before starting, make sure you have:
-
-| Requirement | Version | Check command |
-|-------------|---------|---------------|
-| Python | 3.10 or higher | `python --version` |
-| pip | Latest | `pip --version` |
-| Git | Any | `git --version` |
-| Disk Space | ~3 GB | For venv + PyTorch |
+This guide provides step-by-step instructions to set up the environment, run the training pipeline, test every individual module, execute the 7 phase Jupyter notebooks, and verify with automated test suites.
 
 ---
 
-## Step 1: Navigate to the Project
+## ⚡ The 3-Minute Quickstart
 
-Open your terminal (Git Bash, PowerShell, or Command Prompt) and navigate to the project folder:
+If you need to quickly test or demonstrate the project:
 
-```bash
-cd d:/01_Projects/01_AimlProject/PlacementIQ_AI
-```
-
----
-
-## Step 2: Create a Virtual Environment
-
-A virtual environment keeps all project packages isolated from your system Python.
-
-```bash
-# Create the virtual environment
-python -m venv venv
-```
-
----
-
-## Step 3: Activate the Virtual Environment
-
-**Git Bash (MINGW64):**
-```bash
-source venv/Scripts/activate
-```
-
-**Windows Command Prompt:**
-```cmd
-venv\Scripts\activate
-```
-
-**Windows PowerShell:**
 ```powershell
-.\venv\Scripts\Activate.ps1
-```
+# 1. Navigate to project root
+cd d:\01_Projects\01_AimlProject\PlacementIQ_AI
 
-✅ You should see `(venv)` at the beginning of your terminal prompt. If you don't, the environment is not active — go back and try again.
+# 2. Run Complete Verification Test Suite (Tests all 7 syllabus phases in ~30s)
+python test_full_syllabus_suite.py
 
----
+# 3. Run Interactive Student Prediction (Dual target: Placement % + Salary Package in LPA)
+python src/predict.py --interactive
 
-## Step 4: Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-This installs: numpy, pandas, scikit-learn, xgboost, shap, matplotlib, seaborn, joblib, scipy, transformers, torch, datasets.
-
-> ⚠️ **PyTorch is ~2 GB.** This step may take 5–15 minutes depending on your internet speed.
-
----
-
-## Step 5: Verify Datasets
-
-Make sure `train.csv` and `test.csv` are in the `dataset/` folder:
-
-```bash
-ls dataset/
-# Should show: train.csv  test.csv  generate_dataset.py
-```
-
-If they're missing, copy them from the parent directory:
-```bash
-cp ../train.csv dataset/
-cp ../test.csv dataset/
-```
-
----
-
-## Step 6: Train the Classical ML Models
-
-This trains 5 classifiers (Random Forest, Gradient Boosting, Logistic Regression, Decision Tree, XGBoost), performs clustering, and generates SHAP explanations:
-
-```bash
+# 4. Run Full Pipeline Training
 python src/predict.py --train
 ```
 
-**Expected runtime:** 5–10 minutes on a standard laptop.
+---
 
-**What happens:**
-1. Loads and cleans 45,000 training records
-2. Engineers 7 composite features
-3. Trains and cross-validates 5 ML models
-4. Selects the best model (by ROC-AUC)
-5. Clusters all students using KMeans
-6. Generates SHAP feature importance plots
-7. Saves all models to `models/` and outputs to `outputs/`
+## 📋 System Prerequisites
+
+| Requirement | Supported Version | How to Verify |
+|---|---|---|
+| **Python** | 3.10 – 3.15 | `python --version` |
+| **pip** | Latest | `pip --version` |
+| **Core Libraries** | `pandas`, `scikit-learn`, `numpy`, `matplotlib`, `seaborn`, `joblib`, `mlxtend`, `nbformat` | `pip list` |
 
 ---
 
-## Step 7: Train the LLM (DistilBERT)
+## 🛠️ Environment Setup
 
-This fine-tunes a pre-trained DistilBERT transformer on resume-to-placement classification:
+### Activate Virtual Environment
+```powershell
+# From project directory:
+cd d:\01_Projects\01_AimlProject\PlacementIQ_AI
 
-```bash
-python src/predict.py --train-llm
+# If using PowerShell and script execution is restricted:
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+# Activate venv:
+.\venv\Scripts\Activate.ps1
+
+# (Or in CMD: venv\Scripts\activate.bat | Git Bash: source venv/Scripts/activate)
+
+# Install / update all dependencies:
+pip install -r requirements.txt
 ```
 
-**Expected runtime:**
-- **CPU only:** 15–30 minutes
-- **With NVIDIA GPU:** 3–5 minutes
+*(Note: If using Python directly without activating venv, use `C:\Python315\python.exe`)*
 
-**What happens:**
-1. Loads `train.csv` and converts each student's stats into a natural language paragraph
-2. Tokenises paragraphs using the DistilBERT tokenizer
-3. Fine-tunes the model for 3 epochs
-4. Saves the trained model to `models/llm_resume_model/`
-
-**How is the DistilBERT Resume Analyser used?**
-The LLM model acts as a secondary NLP-based classifier alongside the primary classical ML model. Once you train it using `--train-llm`, the model is saved locally. Then, whenever you run `python src/predict.py --interactive`, the system automatically:
-1. Converts the numeric/categorical inputs you enter into a natural-language "resume summary paragraph".
-2. Passes this text paragraph through the fine-tuned DistilBERT transformer.
-3. Appends an **LLM RESUME ANALYSIS** section at the bottom of the placement report, displaying the LLM's independent prediction and confidence score.
 ---
 
-## Step 8: Run Interactive Prediction
+## 💻 Running the Central CLI Pipeline (`src/predict.py`)
 
-This is the main feature! The AI asks you for a student's details and generates a personalised report:
+`predict.py` orchestrates data loading, training, evaluation, clustering, recommendations, and prediction.
 
-```bash
+### 1. Interactive Single-Student Prediction
+Prompts for student details and outputs both **Placement Probability** and **Estimated Salary Package (LPA)**:
+```powershell
 python src/predict.py --interactive
 ```
 
-You will be prompted:
-```
-Age (e.g., 22): 21
-Gender (Male/Female): Female
-Degree (e.g., B.Tech): B.Tech
-Branch (e.g., CSE): CSE
-CGPA (0-10): 8.2
-Number of Internships: 2
-Number of Projects: 5
-Coding Skills (0-10): 8
-Communication Skills (0-10): 7
-Aptitude Score (0-100): 78
-Soft Skills Rating (0-10): 7
-Number of Certifications: 3
-Current Backlogs: 0
+### 2. Full Training Pipeline
+Retrains all regression models, 6 classifiers, clustering, association rules, PCA, and reinforcement learning:
+```powershell
+python src/predict.py --train
 ```
 
-The AI will instantly generate a full placement report with:
-- Placement probability percentage
-- Readiness level
-- Student cluster
-- Strengths and weaknesses
-- Company recommendations
-- 4-week improvement roadmap
-
----
-
-## Step 9: Run Batch Prediction
-
-Predict placement for an entire CSV file of students:
-
-```bash
+### 3. Batch Predictions on CSV
+Generates predictions for a CSV file of students and outputs `outputs/batch_predictions.csv`:
+```powershell
 python src/predict.py --batch dataset/test.csv
 ```
 
-**Output:** A new file `outputs/batch_predictions.csv` with three new columns added:
-- `Probability` — Placement probability (%)
-- `Readiness_Level` — Categorical assessment
-- `Cluster` — Student cluster name
+---
+
+## 📓 Running the 7 Phase Jupyter Notebooks
+
+Located directly in the root of `PlacementIQ_AI`:
+
+```text
+├── 01_Phase1_Data_Preprocessing_and_EDA.ipynb
+├── 02_Phase2_Supervised_Regression.ipynb
+├── 03_Phase3_Supervised_Classification.ipynb
+├── 04_Phase4_Model_Evaluation_and_Validation.ipynb
+├── 05_Phase5_Unsupervised_Clustering.ipynb
+├── 06_Phase6_Association_Rules_and_Recommendations.ipynb
+└── 07_Phase7_Reinforcement_Learning_and_Emerging_Trends.ipynb
+```
+
+### How to Run:
+- **VS Code:** Open `PlacementIQ_AI`, open any notebook, select Python Kernel, and click **"Run All"**.
+- **Jupyter Notebook / Lab:**
+  ```powershell
+  jupyter notebook
+  ```
+- **Google Colab:** Upload the notebook and `dataset/train.csv` + `dataset/test.csv`, install dependencies, and click **"Run all"**.
 
 ---
 
-## Command Reference
+## 🔬 Running Individual Python Modules Directly
 
-| Command | What it does |
-|---------|-------------|
-| `python src/predict.py --train` | Train all classical ML models |
-| `python src/predict.py --train-llm` | Fine-tune the DistilBERT LLM |
-| `python src/predict.py --interactive` | Interactive single-student prediction |
-| `python src/predict.py --batch <file.csv>` | Batch prediction on a CSV file |
-| `python src/predict.py --help` | Show all available commands |
+Every topic module can be run as a standalone script:
 
----
+```powershell
+# Phase 2: Supervised Learning — Regression (Linear, Multiple, Polynomial, MAE, MSE, RMSE, R²)
+python src/train_regressor.py
 
-## Troubleshooting
+# Phase 3: Supervised Learning — Classification (Logistic, KNN, DecisionTree, RandomForest, NaiveBayes, SVM)
+python src/train_classifier.py
 
-### "ModuleNotFoundError: No module named 'joblib'"
-**Cause:** Virtual environment is not activated.
-**Fix:** Run `source venv/Scripts/activate` (Bash) or `venv\Scripts\activate` (CMD).
+# Phase 4: Model Evaluation & Validation (5-Fold Stratified CV, Overfitting Curves, Confusion Matrix)
+python src/model_validation.py
 
-### "can't open file 'src/predict.py': No such file or directory"
-**Cause:** You are in the wrong folder.
-**Fix:** Make sure you `cd PlacementIQ_AI` first.
+# Phase 5: Unsupervised Learning — Clustering (K-Means, Ward Linkage Dendrogram, DBSCAN)
+python src/unsupervised_learning.py
 
-### "bash: venvScriptsactivate: command not found"
-**Cause:** Using backslashes in Git Bash.
-**Fix:** Use forward slashes: `source venv/Scripts/activate`
+# Phase 6: Association Rule Mining & PCA (Apriori, FP-Growth, Recommender, Scree Plot, 2D Scatter)
+python src/association_and_pca.py
 
-### "CUDA not available" warning during LLM training
-**Cause:** You don't have an NVIDIA GPU or CUDA is not installed.
-**Impact:** Training still works, just slower (CPU mode). This is perfectly fine.
-
-### UnicodeEncodeError when printing report
-**Cause:** Windows terminal can't render Unicode characters.
-**Fix:** This is automatically handled. If you still see issues, run:
-```bash
-chcp 65001
+# Phase 7: Reinforcement Learning (Student MDP, Q-Learning Agent, Optimal Policy, AI Ethics)
+python src/reinforcement_learning.py
 ```
 
 ---
 
-## Output Files
+## 🧪 Running Automated Test Suites
 
-After running the full pipeline, you'll find these files:
+```powershell
+# 1. Run Complete Syllabus Suite (All 7 Phases)
+python test_full_syllabus_suite.py
 
-### models/ (Saved AI Models)
-| File | Description |
-|------|-------------|
-| `best_classifier.joblib` | Best ML model (Random Forest) |
-| `scaler.joblib` | StandardScaler for feature normalisation |
-| `encoders.joblib` | LabelEncoders for categorical features |
-| `cluster_model.joblib` | Trained KMeans cluster model |
-| `cluster_names.joblib` | Cluster label mapping |
-| `feature_names.joblib` | Ordered list of feature column names |
-| `llm_resume_model/` | Fine-tuned DistilBERT model + tokenizer |
+# 2. Run Comprehensive Curriculum Deep Test
+python test_all_curriculum_modules.py
+```
 
-### outputs/ (Reports and Visualisations)
-| File | Description |
-|------|-------------|
-| `placement_report.txt` | Latest generated placement report |
-| `batch_predictions.csv` | Batch prediction results |
-| `model_comparison.png` | Bar chart comparing model AUCs |
-| `model_comparison.csv` | Tabular model comparison |
-| `feature_importance.png` | Feature importance bar chart |
-| `shap_summary.png` | SHAP beeswarm plot |
-| `correlation_heatmap.png` | Feature correlation matrix |
-| `eda_*.png` | Various EDA visualisation plots |
-| `cleaned_data.csv` | Preprocessed and cleaned dataset |
+---
+
+## 📁 Output Artifacts Generated
+
+- **Saved Models (`models/`):**
+  - `best_classifier.joblib`: Random Forest Classifier
+  - `best_regressor.joblib`: Multiple Linear Regressor (LPA Package)
+  - `cluster_model.joblib`: K-Means Cluster Model
+  - `scaler.joblib` & `encoders.joblib`: Data transformers
+- **Visualizations & Plots (`outputs/`):**
+  - `regression_actual_vs_predicted.png` & `regression_residuals.png`
+  - `overfitting_underfitting_curve.png` & `bias_variance_tradeoff.png`
+  - `detailed_confusion_matrix.png`
+  - `hierarchical_dendrogram.png` & `cluster_elbow_silhouette.png`
+  - `pca_variance_and_projection.png`
+  - `rl_qlearning_convergence.png`
+  - `model_comparison.png` & `roc_curves_comparison.png`
+  - `correlation_heatmap.png`

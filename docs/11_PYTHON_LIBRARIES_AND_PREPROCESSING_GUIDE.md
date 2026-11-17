@@ -66,7 +66,7 @@ Our PlacementIQ AI project includes **two Colab-compatible notebooks**:
 # Option A: Upload dataset directly from Google Drive
 from google.colab import drive
 drive.mount('/content/drive')
-df = pd.read_csv('/content/drive/MyDrive/dataset/train.csv')
+df = pd.read_csv('/content/drive/MyDrive/dataset/cleaned_train.csv')
 
 # Option B: Upload from local machine
 from google.colab import files
@@ -84,10 +84,10 @@ Our project supports **both** environments. The notebook `colab_preprocessing.ip
 
 ```python
 # In Colab:
-df = pd.read_csv('/content/drive/MyDrive/dataset/train.csv')
+df = pd.read_csv('/content/drive/MyDrive/dataset/cleaned_train.csv')
 
 # Locally (as used in our project):
-df = pd.read_csv('dataset/train.csv')
+df = pd.read_csv('dataset/cleaned_train.csv')
 ```
 
 > **In our project:** The `colab_preprocessing.ipynb` notebook handles the complete preprocessing pipeline step by step, with visualizations at each stage.
@@ -495,7 +495,7 @@ Our project uses a **pre-collected dataset** of **45,000 student records** in CS
 
 ```
 dataset/
-├── train.csv    (2.5 MB — ~40,500 training records)
+├── cleaned_train.csv    (2.5 MB — ~40,500 training records)
 └── test.csv     (281 KB — ~4,500 testing records)
 ```
 
@@ -1078,7 +1078,7 @@ Splitting data into **training** and **testing** sets is essential to:
 **a) Pre-Split Files:**
 Our dataset comes **pre-split** into two separate CSV files:
 ```
-dataset/train.csv  → 45,000 records (training)
+dataset/cleaned_train.csv  → 45,000 records (training)
 dataset/test.csv   → 5,000 records (testing)
 ```
 
@@ -1124,7 +1124,7 @@ In addition to the hold-out test set, we use **5-fold cross-validation** to get 
 ├─────────────────────────────────────────────────────────────────┤
 │                                                                 │
 │  1. DATA COLLECTION                                             │
-│     └─ Load train.csv and test.csv                              │
+│     └─ Load cleaned_train.csv and test.csv                              │
 │                                                                 │
 │  2. DATA CLEANING                                               │
 │     ├─ Remove duplicates (training set)                         │

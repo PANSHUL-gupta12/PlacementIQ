@@ -106,11 +106,12 @@ def detect_columns(df: pd.DataFrame) -> dict:
     numerical = [c for c in numerical if c != target_col]
     categorical = [c for c in categorical if c != target_col]
     
-    # Also remove Student_ID if it exists, since it's not a feature
-    if "Student_ID" in numerical:
-        numerical.remove("Student_ID")
-    if "Student_ID" in categorical:
-        categorical.remove("Student_ID")
+    # Also remove Student_ID and Salary_LPA if they exist, since they are not classification features
+    for non_feat in ["Student_ID", "Salary_LPA"]:
+        if non_feat in numerical:
+            numerical.remove(non_feat)
+        if non_feat in categorical:
+            categorical.remove(non_feat)
 
     info = {
         "categorical": categorical,
