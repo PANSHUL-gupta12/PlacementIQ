@@ -286,7 +286,8 @@ def preprocess_pipeline(
     df_scaled, scaler = scale_features(df.copy(), all_numerical)
 
     # Step 7: Train-test split (Back to original)
-    feature_cols = [c for c in df_scaled.columns if c != target_col and c != "Student_ID"]
+    non_features = [target_col, "Student_ID", "Salary_LPA", "Salary"]
+    feature_cols = [c for c in df_scaled.columns if c not in non_features]
     X = df_scaled[feature_cols]
     y = df_scaled[target_col]
 

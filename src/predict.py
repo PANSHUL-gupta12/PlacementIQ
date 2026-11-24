@@ -348,11 +348,12 @@ def predict_single_student(
         try:
             reg_model = joblib.load(reg_path)
             if hasattr(reg_model, "feature_names_in_"):
-                reg_cols = reg_model.feature_names_in_
-                reg_input = pd.DataFrame([{c: eng_data.get(c, 0.0) for c in reg_cols}])
+                reg_cols = [c for c in reg_model.feature_names_in_ if c in feature_scaled.columns]
+                reg_input = feature_scaled[reg_cols]
             else:
                 reg_input = feature_scaled
-            predicted_salary = round(float(reg_model.predict(reg_input)[0]), 2)
+            raw_salary = float(reg_model.predict(reg_input)[0])
+            predicted_salary = round(max(0.0, raw_salary), 2)
         except Exception as e:
             logger.warning("Could not predict salary: %s", e)
 

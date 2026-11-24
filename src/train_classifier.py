@@ -237,14 +237,26 @@ if __name__ == "__main__":
     from feature_engineering import feature_engineering_pipeline
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(project_root, "dataset", "placement.csv")
     out_dir = os.path.join(project_root, "outputs")
     mdl_dir = os.path.join(project_root, "models")
+    os.makedirs(out_dir, exist_ok=True)
+    os.makedirs(mdl_dir, exist_ok=True)
+    train_path = os.path.join(project_root, "dataset", "train.csv")
+    if not os.path.exists(train_path):
+        train_path = os.path.join(project_root, "dataset", "cleaned_train.csv")
+    test_path = os.path.join(project_root, "dataset", "test.csv")
 
-    df = load_dataset(csv_path)
-    df = feature_engineering_pipeline(df)
-    col_info = detect_columns(df)
-    result = preprocess_pipeline(df, col_info, out_dir, mdl_dir)
+    df_train = load_dataset(train_path)
+    if os.path.exists(test_path):
+        df_test = load_dataset(test_path)
+    else:
+        from sklearn.model_selection import train_test_split
+        df_train, df_test = train_test_split(df_train, test_size=0.2, random_state=42)
+
+    df_train = feature_engineering_pipeline(df_train)
+    df_test = feature_engineering_pipeline(df_test)
+    col_info = detect_columns(df_train)
+    result = preprocess_pipeline(df_train, df_test, col_info, out_dir, mdl_dir)
 
     training = train_all_models(
         result["X_train"], result["y_train"],
