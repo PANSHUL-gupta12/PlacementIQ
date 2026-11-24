@@ -54,7 +54,8 @@ def run_all_phase_tests():
     reg_res = train_regression_models(
         train[features].head(5000), train['Salary_LPA'].head(5000),
         test[features].head(1000), test['Salary_LPA'].head(1000),
-        output_dir=OUTPUT_DIR, model_dir=MODEL_DIR
+        output_dir=OUTPUT_DIR, model_dir=MODEL_DIR,
+        save_models=False,
     )
     best_r2 = reg_res['results_df']['R2_Score'].max()
     assert best_r2 > 0.90, f"Expected R² > 0.90, got {best_r2}"

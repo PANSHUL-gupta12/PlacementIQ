@@ -97,7 +97,7 @@ def plot_cluster_evaluation_metrics(k_results: Dict[str, Any], output_dir: str) 
     axes[1].legend()
 
     # 3. Davies-Bouldin
-    axes[2].plot(ks, k_results["davies_bouldin"], "mo-", linewidth=2)
+    axes[2].plot(ks, k_results["davies_bouldin"], "mo-", linewidth=2, label="Davies-Bouldin Index")
     axes[2].set_title("Davies-Bouldin Index (Lower is Better)", fontweight="bold")
     axes[2].set_xlabel("Number of Clusters (K)")
     axes[2].set_ylabel("Davies-Bouldin Index")
@@ -205,4 +205,34 @@ def segment_students(
     summary.to_csv(summary_path)
     logger.info("Student cluster segment profiles saved to: %s", summary_path)
     return summary
+
+
+if __name__ == "__main__":
+    import sys
+    from sklearn.preprocessing import StandardScaler
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_csv = os.path.join(project_root, "dataset", "train.csv")
+    out_dir = os.path.join(project_root, "outputs")
+
+    df = pd.read_csv(train_csv)
+    numeric_cols = [
+        "Age", "CGPA", "Internships", "Projects", "Coding_Skills",
+        "Communication_Skills", "Aptitude_Test_Score", "Soft_Skills_Rating",
+        "Certifications", "Backlogs",
+    ]
+    X_scaled = StandardScaler().fit_transform(df[numeric_cols])
+
+    k_res = evaluate_kmeans_range(X_scaled, k_range=range(2, 7), subsample_size=3000)
+    eval_plot = plot_cluster_evaluation_metrics(k_res, out_dir)
+    _, dendro_path = run_hierarchical_clustering(X_scaled, n_clusters=4, sample_size=300, output_dir=out_dir)
+    db_res = run_dbscan_clustering(X_scaled, eps=2.0, min_samples=15, sample_size=2000)
+
+    best_km = KMeans(n_clusters=k_res["best_k"], random_state=42, n_init=10).fit(X_scaled)
+    segment_students(df[numeric_cols], best_km.labels_, out_dir)
+
+    print("\n✅ Unsupervised Learning Complete")
+    print(f"   K-Means Optimal K: {k_res['best_k']} (Best Silhouette: {max(k_res['silhouettes']):.4f})")
+    print(f"   DBSCAN Clusters: {db_res['n_clusters']} | Noise Points: {db_res['n_noise']}")
+    print(f"   Plots saved to: {eval_plot}, {dendro_path}")
 

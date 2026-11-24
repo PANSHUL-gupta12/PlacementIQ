@@ -343,3 +343,35 @@ def predict_resume_llm(
         "confidence": round(confidence, 4),
         "placed_probability": round(probs[0][1].item(), 4),
     }
+
+
+if __name__ == "__main__":
+    import argparse
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    parser = argparse.ArgumentParser(description="DistilBERT LLM Resume Classifier")
+    parser.add_argument("--train", action="store_true", help="Fine-tune DistilBERT from scratch")
+    parser.add_argument("--epochs", type=int, default=3, help="Number of epochs for --train")
+    args = parser.parse_args()
+
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_csv = os.path.join(project_root, "dataset", "train.csv")
+    if not os.path.exists(train_csv):
+        train_csv = os.path.join(project_root, "dataset", "cleaned_train.csv")
+    model_dir = os.path.join(project_root, "models")
+    saved_llm = os.path.join(model_dir, "llm_resume_model")
+
+    if args.train or not os.path.isdir(saved_llm):
+        train_llm_model(train_csv, model_dir, epochs=args.epochs)
+    else:
+        sample_row = pd.Series({
+            "Age": 22, "Gender": "Male", "Degree": "B.Tech", "Branch": "CSE",
+            "CGPA": 8.4, "Backlogs": 0, "Internships": 2, "Projects": 4,
+            "Coding_Skills": 8, "Communication_Skills": 8,
+            "Aptitude_Test_Score": 82, "Soft_Skills_Rating": 8, "Certifications": 3,
+        })
+        sample_text = generate_resume_text(sample_row)
+        res = predict_resume_llm(sample_text, model_path=saved_llm)
+        print(f"\n✅ DistilBERT LLM Resume Classifier Loaded ({saved_llm})")
+        print(f"   Sample Resume Text: {sample_text}")
+        print(f"   Prediction: {res['label']} (Confidence: {res['confidence']:.2%}, Placed Prob: {res['placed_probability']:.2%})")
+        print("   Tip: Pass --train to fine-tune DistilBERT again.")

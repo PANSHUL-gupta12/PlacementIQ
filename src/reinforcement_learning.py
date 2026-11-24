@@ -286,3 +286,16 @@ ETHICS_AND_TRENDS = {
     ],
 }
 
+
+if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    out_dir = os.path.join(project_root, "outputs")
+
+    rl_res = train_rl_placement_agent(episodes=1000, output_dir=out_dir)
+    print("\n✅ Reinforcement Learning Simulation Complete (1,000 Episodes)")
+    print("\nOptimal Policy Table:")
+    print(rl_res["policy_df"].to_string(index=False))
+    print(f"\nConvergence plot saved to: {rl_res['plot_path']}")
+

@@ -64,6 +64,8 @@ def train_regression_models(
     y_test: pd.Series,
     output_dir: str = "outputs",
     model_dir: str = "models",
+    save_models: bool = True,
+    scaled_input: bool = False,
 ) -> Dict[str, Any]:
     """Train Simple Linear, Multiple Linear, and Polynomial Regression models."""
     os.makedirs(output_dir, exist_ok=True)
@@ -126,9 +128,16 @@ def train_regression_models(
     best_model = fitted_models[best_key]
 
     # Save best regressor
-    joblib.dump(best_model, os.path.join(model_dir, "best_regressor.joblib"))
-    joblib.dump({"model_name": best_name, "metrics": results_df.iloc[0].to_dict()},
-                os.path.join(model_dir, "regressor_meta.joblib"))
+    if save_models:
+        joblib.dump(best_model, os.path.join(model_dir, "best_regressor.joblib"))
+        joblib.dump(
+            {
+                "model_name": best_name,
+                "metrics": results_df.iloc[0].to_dict(),
+                "scaled_input": scaled_input,
+            },
+            os.path.join(model_dir, "regressor_meta.joblib"),
+        )
 
     # Plot 1: Actual vs Predicted
     fig, axes = plt.subplots(1, 3, figsize=(18, 5))
@@ -166,4 +175,30 @@ def train_regression_models(
         "plot_actual_vs_pred": plot_path1,
         "plot_residuals": plot_path2,
     }
+
+
+if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_csv = os.path.join(project_root, "dataset", "train.csv")
+    test_csv = os.path.join(project_root, "dataset", "test.csv")
+    out_dir = os.path.join(project_root, "outputs")
+    mdl_dir = os.path.join(project_root, "models")
+
+    df_train = pd.read_csv(train_csv)
+    df_test = pd.read_csv(test_csv)
+    reg_features = [
+        "CGPA", "Coding_Skills", "Internships", "Projects",
+        "Communication_Skills", "Aptitude_Test_Score", "Soft_Skills_Rating",
+        "Certifications", "Backlogs",
+    ]
+    res = train_regression_models(
+        df_train[reg_features], df_train["Salary_LPA"],
+        df_test[reg_features], df_test["Salary_LPA"],
+        output_dir=out_dir, model_dir=mdl_dir,
+        save_models=True, scaled_input=False,
+    )
+    print(f"\n✅ Regression Training Complete — Best Model: {res['best_model_name']}")
+    print(res["results_df"].to_string(index=False))
 

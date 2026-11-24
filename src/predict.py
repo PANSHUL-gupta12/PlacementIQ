@@ -145,7 +145,8 @@ def run_training_pipeline() -> dict:
         train_regression_models(
             prep["X_train"][reg_features], reg_train["Salary_LPA"].iloc[:len(prep["X_train"])],
             prep["X_test"][reg_features], reg_test["Salary_LPA"].iloc[:len(prep["X_test"])],
-            OUTPUT_DIR, MODEL_DIR
+            OUTPUT_DIR, MODEL_DIR,
+            save_models=True, scaled_input=True,
         )
         plot_overfitting_underfitting(prep["X_train"][reg_features], prep["y_train"], OUTPUT_DIR)
         plot_bias_variance_tradeoff(OUTPUT_DIR)
@@ -207,6 +208,95 @@ def run_training_pipeline() -> dict:
     }
 
 
+_FEATURE_MAX_VALS = {
+    "CGPA": 10, "Backlogs": 5, "Coding_Skills": 10,
+    "Aptitude_Test_Score": 100, "Projects": 10,
+    "Internships": 5, "Certifications": 10, "Age": 30,
+    "Communication_Skills": 10, "Soft_Skills_Rating": 10,
+}
+
+
+def _prepare_feature_matrices(
+    df: pd.DataFrame,
+    scaler,
+    encoders: dict,
+    feature_names: list[str],
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Compute engineered features, encode categoricals, and scale feature matrix."""
+    eng_df = df.copy()
+
+    for feat_name, spec in COMPOSITE_FEATURES.items():
+        available = [(c, w) for c, w in zip(spec["columns"], spec["weights"]) if c in eng_df.columns]
+        if available:
+            cols, weights = zip(*available)
+            score = sum(
+                w * (eng_df[c].astype(float) / _FEATURE_MAX_VALS.get(c, max(float(eng_df[c].max()), 1.0)))
+                for c, w in zip(cols, weights)
+            )
+            eng_df[feat_name] = score.clip(0.0, 1.0)
+
+    overall_feats = ["AcademicScore", "TechnicalScore", "ExperienceScore",
+                     "CommunicationScore", "ProjectScore", "CodingIndex"]
+    overall_weights = [0.25, 0.25, 0.15, 0.15, 0.10, 0.10]
+    available_overall = [(f, w) for f, w in zip(overall_feats, overall_weights) if f in eng_df.columns]
+    if available_overall:
+        feats, wts = zip(*available_overall)
+        total_w = sum(wts)
+        eng_df["OverallSkillScore"] = sum(eng_df[f] * w / total_w for f, w in zip(feats, wts))
+
+    raw_eng_df = eng_df.copy()
+
+    for col, le in encoders.items():
+        if col in eng_df.columns:
+            mapping = {cls: idx for idx, cls in enumerate(le.classes_)}
+            eng_df[col] = eng_df[col].astype(str).map(mapping).fillna(0).astype(int)
+
+    feature_df = pd.DataFrame({f: eng_df[f] if f in eng_df.columns else 0.0 for f in feature_names})
+    if hasattr(scaler, "feature_names_in_"):
+        scale_cols = scaler.feature_names_in_
+        feature_df[scale_cols] = scaler.transform(feature_df[scale_cols])
+        feature_scaled = feature_df
+    else:
+        feature_scaled = pd.DataFrame(scaler.transform(feature_df), columns=feature_names)
+
+    return feature_scaled, raw_eng_df
+
+
+def _predict_salary_array(
+    feature_scaled: pd.DataFrame,
+    raw_eng_df: pd.DataFrame,
+) -> np.ndarray | None:
+    """Predict non-negative Salary_LPA values matching how best_regressor was trained."""
+    reg_path = os.path.join(MODEL_DIR, "best_regressor.joblib")
+    reg_meta_path = os.path.join(MODEL_DIR, "regressor_meta.joblib")
+    if not os.path.isfile(reg_path):
+        return None
+
+    try:
+        reg_model = joblib.load(reg_path)
+        use_scaled = False
+        if os.path.isfile(reg_meta_path):
+            reg_meta = joblib.load(reg_meta_path)
+            if "scaled_input" in reg_meta:
+                use_scaled = bool(reg_meta["scaled_input"])
+            elif hasattr(reg_model, "feature_names_in_"):
+                use_scaled = len(reg_model.feature_names_in_) > 10
+        elif hasattr(reg_model, "feature_names_in_"):
+            use_scaled = len(reg_model.feature_names_in_) > 10
+
+        if hasattr(reg_model, "feature_names_in_"):
+            reg_cols = list(reg_model.feature_names_in_)
+            source_df = feature_scaled if use_scaled else raw_eng_df
+            reg_input = pd.DataFrame({c: source_df[c] if c in source_df.columns else 0.0 for c in reg_cols})
+        else:
+            reg_input = feature_scaled
+
+        return np.round(np.clip(reg_model.predict(reg_input), 0.0, None), 2)
+    except Exception as e:
+        logger.warning("Could not predict salary: %s", e)
+        return None
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 3. Single Student Prediction
 # ═══════════════════════════════════════════════════════════════════════════
@@ -253,54 +343,10 @@ def predict_single_student(
         feature_names = joblib.load(os.path.join(MODEL_DIR, "feature_names.joblib"))
 
     # ── Build feature vector ────────────────────────────────────────────
-    # Apply feature engineering to create composite scores
-    eng_data = dict(student_data)
-
-    # Create composite features inline
-    for feat_name, spec in COMPOSITE_FEATURES.items():
-        available = [(c, w) for c, w in zip(spec["columns"], spec["weights"]) if c in eng_data]
-        if available:
-            cols, weights = zip(*available)
-            vals = [eng_data[c] for c in cols]
-            # Simple normalized weighted sum
-            max_vals = {"CGPA": 10, "Backlogs": 5, "Coding_Skills": 10,
-                        "Aptitude_Test_Score": 100, "Projects": 10,
-                        "Internships": 5, "Certifications": 10, "Age": 30,
-                        "Communication_Skills": 10, "Soft_Skills_Rating": 10}
-            norm_vals = [v / max_vals.get(c, max(v, 1)) for c, v in zip(cols, vals)]
-            score = sum(w * nv for w, nv in zip(weights, norm_vals))
-            eng_data[feat_name] = max(0, min(1, score))
-
-    # Overall skill score
-    overall_feats = ["AcademicScore", "TechnicalScore", "ExperienceScore",
-                     "CommunicationScore", "ProjectScore", "CodingIndex"]
-    overall_weights = [0.25, 0.25, 0.15, 0.15, 0.10, 0.10]
-    available_overall = [(f, w) for f, w in zip(overall_feats, overall_weights) if f in eng_data]
-    if available_overall:
-        feats, wts = zip(*available_overall)
-        total_w = sum(wts)
-        eng_data["OverallSkillScore"] = sum(eng_data[f] * w / total_w for f, w in zip(feats, wts))
-
-    # Encode categoricals
-    for col, le in encoders.items():
-        if col in eng_data:
-            val = str(eng_data[col])
-            if val in le.classes_:
-                eng_data[col] = le.transform([val])[0]
-            else:
-                eng_data[col] = 0  # Unknown category fallback
-
-    # Build feature DataFrame in the right order for the model
-    feature_df = pd.DataFrame([{f: eng_data.get(f, 0.0) for f in feature_names}])
-
-    # Scale using the exact columns and order the scaler was fitted on
-    if hasattr(scaler, "feature_names_in_"):
-        scale_cols = scaler.feature_names_in_
-        # This replaces the values in-place while keeping feature_df's column order intact
-        feature_df[scale_cols] = scaler.transform(feature_df[scale_cols])
-        feature_scaled = feature_df
-    else:
-        feature_scaled = scaler.transform(feature_df)
+    feature_scaled, raw_eng_df = _prepare_feature_matrices(
+        pd.DataFrame([student_data]), scaler, encoders, feature_names
+    )
+    raw_eng_row = raw_eng_df.iloc[0].to_dict()
 
     # ── Predict ─────────────────────────────────────────────────────────
     probability = float(best_model.predict_proba(feature_scaled)[0][1])
@@ -315,15 +361,10 @@ def predict_single_student(
     )
 
     # ── Skill Gap ───────────────────────────────────────────────────────
-    # Use normalized values for skill analysis
     norm_data = {}
-    max_vals = {"CGPA": 10, "Backlogs": 5, "Coding_Skills": 10,
-                "Aptitude_Test_Score": 100, "Projects": 10,
-                "Internships": 5, "Certifications": 10, "Age": 30,
-                "Communication_Skills": 10, "Soft_Skills_Rating": 10}
     for k, v in student_data.items():
-        norm_data[k] = v / max_vals.get(k, max(v, 1)) if isinstance(v, (int, float)) else 0
-    for k, v in eng_data.items():
+        norm_data[k] = v / _FEATURE_MAX_VALS.get(k, max(v, 1)) if isinstance(v, (int, float)) else 0
+    for k, v in raw_eng_row.items():
         if k not in norm_data and isinstance(v, (int, float)):
             norm_data[k] = v
 
@@ -342,20 +383,8 @@ def predict_single_student(
         interview_result = evaluate_interview(**interview_scores)
 
     # ── Salary Package Regression (LPA) ─────────────────────────────────
-    predicted_salary = None
-    reg_path = os.path.join(MODEL_DIR, "best_regressor.joblib")
-    if os.path.isfile(reg_path):
-        try:
-            reg_model = joblib.load(reg_path)
-            if hasattr(reg_model, "feature_names_in_"):
-                reg_cols = [c for c in reg_model.feature_names_in_ if c in feature_scaled.columns]
-                reg_input = feature_scaled[reg_cols]
-            else:
-                reg_input = feature_scaled
-            raw_salary = float(reg_model.predict(reg_input)[0])
-            predicted_salary = round(max(0.0, raw_salary), 2)
-        except Exception as e:
-            logger.warning("Could not predict salary: %s", e)
+    salary_preds = _predict_salary_array(feature_scaled, raw_eng_df)
+    predicted_salary = float(salary_preds[0]) if salary_preds is not None else None
 
     # ── Generate Report ─────────────────────────────────────────────────
     report = generate_report(
@@ -532,15 +561,15 @@ def run_interactive_prediction() -> None:
 # ═══════════════════════════════════════════════════════════════════════════
 # 5. Batch Prediction
 # ═══════════════════════════════════════════════════════════════════════════
-def run_batch_prediction(input_csv: str) -> None:
-    """Run batch prediction on a CSV file and output results."""
+def run_batch_prediction(input_csv: str, output_csv: str | None = None) -> None:
+    """Run vectorized batch prediction on a CSV file and output results."""
     if not os.path.isfile(input_csv):
         logger.error(f"Input file not found: {input_csv}")
         sys.exit(1)
 
     logger.info(f"Loading batch data from {input_csv}...")
     df = pd.read_csv(input_csv)
-    
+
     # Load models
     best_model = joblib.load(os.path.join(MODEL_DIR, "best_classifier.joblib"))
     scaler = joblib.load(os.path.join(MODEL_DIR, "scaler.joblib"))
@@ -549,67 +578,32 @@ def run_batch_prediction(input_csv: str) -> None:
     cluster_names = joblib.load(os.path.join(MODEL_DIR, "cluster_names.joblib"))
     feature_names = joblib.load(os.path.join(MODEL_DIR, "feature_names.joblib"))
 
-    logger.info("Running predictions...")
-    results = []
-    
-    # Simple loop for demonstration; vectorized is better for huge datasets
-    for _, row in df.iterrows():
-        # Get report string, but we just want to extract basic info
-        # We can run a simplified version of the logic
-        student_data = row.to_dict()
-        eng_data = dict(student_data)
+    logger.info("Running predictions on %d records...", len(df))
+    feature_scaled, raw_eng_df = _prepare_feature_matrices(df, scaler, encoders, feature_names)
 
-        # Feature Engineering
-        for feat_name, spec in COMPOSITE_FEATURES.items():
-            available = [(c, w) for c, w in zip(spec["columns"], spec["weights"]) if c in eng_data]
-            if available:
-                cols, weights = zip(*available)
-                vals = [eng_data[c] for c in cols]
-                max_vals = {"CGPA": 10, "Backlogs": 5, "Coding_Skills": 10,
-                            "Aptitude_Test_Score": 100, "Projects": 10,
-                            "Internships": 5, "Certifications": 10, "Age": 30,
-                            "Communication_Skills": 10, "Soft_Skills_Rating": 10}
-                norm_vals = [v / max_vals.get(c, max(v, 1)) for c, v in zip(cols, vals)]
-                score = sum(w * nv for w, nv in zip(weights, norm_vals))
-                eng_data[feat_name] = max(0, min(1, score))
+    probs = best_model.predict_proba(feature_scaled)[:, 1]
+    readiness_list = [classify_readiness(float(p)) for p in probs]
+    cluster_ids = cluster_model.predict(feature_scaled.to_numpy())
+    cluster_labels = [cluster_names.get(int(cid), f"Cluster {cid}") for cid in cluster_ids]
 
-        overall_feats = ["AcademicScore", "TechnicalScore", "ExperienceScore", "CommunicationScore", "ProjectScore", "CodingIndex"]
-        overall_weights = [0.25, 0.25, 0.15, 0.15, 0.10, 0.10]
-        available_overall = [(f, w) for f, w in zip(overall_feats, overall_weights) if f in eng_data]
-        if available_overall:
-            feats, wts = zip(*available_overall)
-            total_w = sum(wts)
-            eng_data["OverallSkillScore"] = sum(eng_data[f] * w / total_w for f, w in zip(feats, wts))
+    result_cols = {
+        "Probability": np.round(probs * 100, 2),
+        "Readiness_Level": readiness_list,
+        "Cluster": cluster_labels,
+    }
 
-        for col, le in encoders.items():
-            if col in eng_data:
-                val = str(eng_data[col])
-                eng_data[col] = le.transform([val])[0] if val in le.classes_ else 0
+    salary_preds = _predict_salary_array(feature_scaled, raw_eng_df)
+    if salary_preds is not None:
+        result_cols["Estimated_Salary_LPA"] = salary_preds
 
-        feature_df = pd.DataFrame([{f: eng_data.get(f, 0.0) for f in feature_names}])
-        
-        if hasattr(scaler, "feature_names_in_"):
-            scale_cols = scaler.feature_names_in_
-            feature_df[scale_cols] = scaler.transform(feature_df[scale_cols])
-            feature_scaled = feature_df
-        else:
-            feature_scaled = scaler.transform(feature_df)
-        
-        prob = float(best_model.predict_proba(feature_scaled)[0][1])
-        readiness = classify_readiness(prob)
-        cluster_info = predict_cluster(feature_scaled, cluster_model, cluster_names)
-        
-        results.append({
-            "Probability": round(prob * 100, 2),
-            "Readiness_Level": readiness,
-            "Cluster": cluster_info["cluster_name"]
-        })
-
-    # Combine back to df
-    out_df = pd.concat([df, pd.DataFrame(results)], axis=1)
-    out_path = os.path.join(OUTPUT_DIR, "batch_predictions.csv")
+    out_df = pd.concat([df, pd.DataFrame(result_cols)], axis=1)
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    out_path = output_csv if output_csv else os.path.join(OUTPUT_DIR, "batch_predictions.csv")
+    out_dir_parent = os.path.dirname(os.path.abspath(out_path))
+    if out_dir_parent:
+        os.makedirs(out_dir_parent, exist_ok=True)
     out_df.to_csv(out_path, index=False)
-    logger.info(f"Batch prediction complete! Saved to: {out_path}")
+    logger.info(f"Batch prediction complete! Saved {len(out_df):,} predictions to: {out_path}")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -617,8 +611,8 @@ def run_batch_prediction(input_csv: str) -> None:
 # ═══════════════════════════════════════════════════════════════════════════
 def main() -> None:
     """Main entry point."""
-    # Fix Windows console encoding for Unicode output (box-drawing, emojis)
-    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    # Fix Windows console & Git Bash MinTTY buffering / Unicode output
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
     parser = argparse.ArgumentParser(description="PlacementIQ AI Pipeline")
     parser.add_argument("--train", action="store_true",
@@ -627,14 +621,16 @@ def main() -> None:
                         help="Fine-tune the DistilBERT LLM model")
     parser.add_argument("--interactive", action="store_true",
                         help="Run interactive mode to predict for a single student")
-    parser.add_argument("--batch", type=str, metavar="CSV_FILE",
+    parser.add_argument("--batch", "--input", dest="batch", type=str, metavar="CSV_FILE",
                         help="Run batch prediction on a provided CSV file")
+    parser.add_argument("--output", type=str, metavar="OUT_CSV", default=None,
+                        help="Optional output CSV path for batch predictions")
     args = parser.parse_args()
 
     if args.interactive:
         run_interactive_prediction()
     elif args.batch:
-        run_batch_prediction(args.batch)
+        run_batch_prediction(args.batch, args.output)
     elif args.train_llm:
         try:
             from llm_resume_classifier import train_llm_model

@@ -201,7 +201,9 @@ if __name__ == "__main__":
     from data_loader import load_dataset
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(project_root, "dataset", "placement.csv")
+    csv_path = os.path.join(project_root, "dataset", "train.csv")
+    if not os.path.exists(csv_path):
+        csv_path = os.path.join(project_root, "dataset", "cleaned_train.csv")
 
     df = load_dataset(csv_path)
     df = feature_engineering_pipeline(df)

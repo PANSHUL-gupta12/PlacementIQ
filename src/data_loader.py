@@ -308,7 +308,9 @@ def run_eda(filepath: str, output_dir: str) -> tuple[pd.DataFrame, dict]:
 # ═══════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(project_root, "dataset", "placement.csv")
+    csv_path = os.path.join(project_root, "dataset", "train.csv")
+    if not os.path.exists(csv_path):
+        csv_path = os.path.join(project_root, "dataset", "cleaned_train.csv")
     out_dir = os.path.join(project_root, "outputs")
     df, info = run_eda(csv_path, out_dir)
     print(f"\n✅ EDA complete — {len(df)} records analysed")

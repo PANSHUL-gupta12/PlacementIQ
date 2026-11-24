@@ -298,7 +298,10 @@ def predict_cluster(
     if model is None:
         raise ValueError("No model provided or loadable.")
 
-    cluster_id = int(model.predict(X.reshape(1, -1) if X.ndim == 1 else X)[0])
+    X_arr = X.to_numpy() if hasattr(X, "to_numpy") else np.asarray(X)
+    if X_arr.ndim == 1:
+        X_arr = X_arr.reshape(1, -1)
+    cluster_id = int(model.predict(X_arr)[0])
     name = cluster_names.get(cluster_id, f"Cluster {cluster_id}") if cluster_names else f"Cluster {cluster_id}"
 
     return {"cluster_id": cluster_id, "cluster_name": name}

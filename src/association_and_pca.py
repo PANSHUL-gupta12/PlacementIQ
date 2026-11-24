@@ -250,3 +250,39 @@ def run_pca_analysis(
         "plot_path": pca_plot_path,
     }
 
+
+if __name__ == "__main__":
+    import sys
+    from sklearn.preprocessing import StandardScaler
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_csv = os.path.join(project_root, "dataset", "train.csv")
+    out_dir = os.path.join(project_root, "outputs")
+
+    df = pd.read_csv(train_csv).head(5000)
+    baskets = create_student_skill_baskets(df)
+    rules_res = mine_association_rules(baskets, min_support=0.15, min_confidence=0.5, output_dir=out_dir)
+
+    sample_student = {
+        "Coding_Skills": 4, "Projects": 2, "Soft_Skills_Rating": 5,
+        "Communication_Skills": 5, "Aptitude_Test_Score": 60, "Certifications": 1,
+    }
+    recs = recommend_courses_for_student(sample_student, top_n=3)
+
+    numeric_cols = [
+        "Age", "CGPA", "Internships", "Projects", "Coding_Skills",
+        "Communication_Skills", "Aptitude_Test_Score", "Soft_Skills_Rating",
+        "Certifications", "Backlogs",
+    ]
+    X_scaled = StandardScaler().fit_transform(df[numeric_cols])
+    y_labels = (df["Placement_Status"] == "Placed").astype(int).values
+    pca_res = run_pca_analysis(X_scaled, numeric_cols, y_labels, n_components=2, output_dir=out_dir)
+
+    print("\n✅ Association Rule Mining, Recommendations & PCA Complete")
+    print(f"   Frequent Itemsets (FP-Growth): {len(rules_res['fpgrowth_itemsets'])}")
+    print(f"   Association Rules Generated: {len(rules_res['all_rules'])} (Placement rules: {len(rules_res['placement_rules'])})")
+    print(f"   PCA Top 2 Components Explained Variance: {pca_res['cumulative_variance'][1] * 100:.2f}%")
+    print("   Sample Course Recommendations:")
+    for c in recs:
+        print(f"     • [{c['Course_ID']}] {c['Title']} ({c['Category']})")
+

@@ -192,3 +192,38 @@ def generate_confusion_matrix_breakdown(
         "plot_path": out_path,
     }
 
+
+if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    train_csv = os.path.join(project_root, "dataset", "train.csv")
+    test_csv = os.path.join(project_root, "dataset", "test.csv")
+    out_dir = os.path.join(project_root, "outputs")
+
+    df_train = pd.read_csv(train_csv).head(5000)
+    df_test = pd.read_csv(test_csv).head(2000)
+    features = [
+        "CGPA", "Coding_Skills", "Internships", "Projects",
+        "Communication_Skills", "Aptitude_Test_Score", "Soft_Skills_Rating",
+        "Certifications", "Backlogs",
+    ]
+    y_train = (df_train["Placement_Status"] == "Placed").astype(int)
+    y_test = (df_test["Placement_Status"] == "Placed").astype(int)
+
+    clf = DecisionTreeClassifier(max_depth=6, random_state=42)
+    cv_res = compare_cv_techniques(clf, df_train[features], y_train, n_splits=5)
+    logger.info("Standard K-Fold Mean Accuracy:   %.4f (±%.4f)", cv_res["kfold_mean"], cv_res["kfold_std"])
+    logger.info("Stratified K-Fold Mean Accuracy: %.4f (±%.4f)", cv_res["stratified_mean"], cv_res["stratified_std"])
+
+    clf.fit(df_train[features], y_train)
+    y_pred = clf.predict(df_test[features])
+    cm_res = generate_confusion_matrix_breakdown(y_test, y_pred, out_dir)
+    curve_path = plot_overfitting_underfitting(df_train[features], y_train, out_dir)
+    bv_path = plot_bias_variance_tradeoff(out_dir)
+
+    print("\n✅ Model Validation & Diagnostics Complete")
+    print(f"   Stratified 5-Fold CV Accuracy: {cv_res['stratified_mean']:.4f}")
+    print(f"   Confusion Matrix Metrics: Acc={cm_res['Accuracy']} Prec={cm_res['Precision']} Rec={cm_res['Recall']} F1={cm_res['F1_Score']}")
+    print(f"   Plots saved to: {out_dir}")
+

@@ -324,15 +324,27 @@ def preprocess_pipeline(
 # ═══════════════════════════════════════════════════════════════════════════
 if __name__ == "__main__":
     from data_loader import load_dataset, detect_columns
+    from feature_engineering import feature_engineering_pipeline
+    from sklearn.model_selection import train_test_split
 
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    csv_path = os.path.join(project_root, "dataset", "placement.csv")
+    train_path = os.path.join(project_root, "dataset", "train.csv")
+    if not os.path.exists(train_path):
+        train_path = os.path.join(project_root, "dataset", "cleaned_train.csv")
+    test_path = os.path.join(project_root, "dataset", "test.csv")
     out_dir = os.path.join(project_root, "outputs")
     mdl_dir = os.path.join(project_root, "models")
 
-    df = load_dataset(csv_path)
-    col_info = detect_columns(df)
-    result = preprocess_pipeline(df, col_info, out_dir, mdl_dir)
+    df_train = load_dataset(train_path)
+    if os.path.exists(test_path):
+        df_test = load_dataset(test_path)
+    else:
+        df_train, df_test = train_test_split(df_train, test_size=0.2, random_state=42)
+
+    df_train = feature_engineering_pipeline(df_train)
+    df_test = feature_engineering_pipeline(df_test)
+    col_info = detect_columns(df_train)
+    result = preprocess_pipeline(df_train, df_test, col_info, out_dir, mdl_dir)
 
     print(f"\n✅ Preprocessing complete")
     print(f"   Train: {result['X_train'].shape}  Test: {result['X_test'].shape}")
